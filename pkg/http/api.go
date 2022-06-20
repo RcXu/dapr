@@ -37,6 +37,7 @@ import (
 	"github.com/dapr/components-contrib/lock"
 	lock_loader "github.com/dapr/dapr/pkg/components/lock"
 
+	"github.com/dapr/components-contrib/logstorage"
 	contrib_metadata "github.com/dapr/components-contrib/metadata"
 	"github.com/dapr/components-contrib/pubsub"
 	"github.com/dapr/components-contrib/secretstores"
@@ -93,6 +94,7 @@ type api struct {
 	outboundReadyStatus      bool
 	tracingSpec              config.TracingSpec
 	shutdown                 func()
+	logstorages              map[string]logstorage.Logstorage
 }
 
 type registeredComponent struct {
@@ -129,6 +131,8 @@ const (
 	traceparentHeader        = "traceparent"
 	tracestateHeader         = "tracestate"
 	daprAppID                = "dapr-app-id"
+	logstorageParam          = "logstorageName"
+	logstorageLevelParam     = "logstorageLevel"
 )
 
 // NewAPI returns a new API.
@@ -148,6 +152,7 @@ func NewAPI(
 	sendToOutputBindingFn func(name string, req *bindings.InvokeRequest) (*bindings.InvokeResponse, error),
 	tracingSpec config.TracingSpec,
 	shutdown func(),
+	logstorages map[string]logstorage.Logstorage,
 ) API {
 	transactionalStateStores := map[string]state.TransactionalStore{}
 	for key, store := range stateStores {
@@ -173,6 +178,7 @@ func NewAPI(
 		id:                       appID,
 		tracingSpec:              tracingSpec,
 		shutdown:                 shutdown,
+		logstorages:              logstorages,
 	}
 
 	metadataEndpoints := api.constructMetadataEndpoints()
@@ -192,6 +198,8 @@ func NewAPI(
 
 	api.publicEndpoints = append(api.publicEndpoints, metadataEndpoints...)
 	api.publicEndpoints = append(api.publicEndpoints, healthEndpoints...)
+
+	api.endpoints = append(api.endpoints, api.constructLogstorageEndpoints()...)
 
 	return api
 }
@@ -2263,4 +2271,70 @@ func (a *api) SetDirectMessaging(directMessaging messaging.DirectMessaging) {
 
 func (a *api) SetActorRuntime(actor actors.Actors) {
 	a.actor = actor
+}
+
+/**
+ * regist Logstorage component api
+ */
+func (a *api) constructLogstorageEndpoints() []Endpoint {
+	return []Endpoint{
+		{
+			Methods: []string{fasthttp.MethodGet, fasthttp.MethodPost},
+			Route:   "logstorage/{logstorageName}/{logstorageLevel}",
+			Version: apiVersionV1,
+			Handler: a.onLogMessage,
+		},
+	}
+}
+
+/**
+ * switch Logstorage component instance
+ */
+func (a *api) getLogstorageWithRequestValidation(reqCtx *fasthttp.RequestCtx) (logstorage.Logstorage, string, error) {
+	if a.logstorages == nil || len(a.logstorages) == 0 {
+		msg := NewErrorResponse("ERR_LOGSTORAGE_NOT_CONFIGURED", messages.ErrLogstorageNotConfigured)
+		respond(reqCtx, withError(fasthttp.StatusInternalServerError, msg))
+		log.Debug(msg)
+		return nil, "", errors.New(msg.Message)
+	}
+
+	logstorageName := a.getLogstorageName(reqCtx)
+	if a.logstorages[logstorageName] == nil {
+		msg := NewErrorResponse("ERR_LOGSTORAGE_NOT_FOUND", fmt.Sprintf(messages.ErrLogstorageNotFound, logstorageName))
+		respond(reqCtx, withError(fasthttp.StatusBadRequest, msg))
+		log.Debug(msg)
+		return nil, "", errors.New(msg.Message)
+	}
+	return a.logstorages[logstorageName], logstorageName, nil
+}
+
+func (a *api) getLogstorageName(reqCtx *fasthttp.RequestCtx) string {
+	return reqCtx.UserValue(logstorageParam).(string)
+}
+
+func (a *api) getLogstorageLevel(reqCtx *fasthttp.RequestCtx) string {
+	return reqCtx.UserValue(logstorageLevelParam).(string)
+}
+
+func (a *api) onLogMessage(reqCtx *fasthttp.RequestCtx) {
+	log.Debug("calling logstorage components")
+	logstorageInstance, _, err := a.getLogstorageWithRequestValidation(reqCtx)
+	if err != nil {
+		log.Debug(err)
+		return
+	}
+	var logstorageMessage logstorage.LogstorageRequest
+	err = json.Unmarshal(reqCtx.PostBody(), &logstorageMessage)
+	if err != nil {
+		msg := NewErrorResponse("ERR_MALFORMED_REQUEST", err.Error())
+		respond(reqCtx, withError(fasthttp.StatusBadRequest, msg))
+		log.Debug(msg)
+		return
+	}
+	log.Debug(logstorageMessage)
+
+	requestId := string(reqCtx.Request.Header.Peek("request_id"))
+
+	logstorageInstance.Log(logstorageMessage, requestId)
+	respond(reqCtx, withEmpty())
 }

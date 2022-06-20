@@ -81,4 +81,6 @@ const (
 	ErrLockOwnerEmpty             = "LockOwner is empty in lock store %s"
 	ErrExpiryInSecondsNotPositive = "ExpiryInSeconds is not positive in lock store %s"
 	ErrLockStoreNotFound          = "lock store %s not found"
+	ErrLogstorageNotConfigured    = "logstorage component not configure"
+	ErrLogstorageNotFound         = "logstorage component %s not found"
 )

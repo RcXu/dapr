@@ -174,7 +174,7 @@ import (
 	lock_redis "github.com/dapr/components-contrib/lock/redis"
 
 	//Logstorage
-	logstorage_slslog "github.com/dapr/components-contrib/logstorage/slslog"
+	logstorage_alicloud "github.com/dapr/components-contrib/logstorage/alicloud"
 	logstorage_loader "github.com/dapr/dapr/pkg/components/logstorage"
 )
 
@@ -565,7 +565,7 @@ func main() {
 		),
 		runtime.WithLogstorages(
 			logstorage_loader.New("slslog", func() logstorage.Logstorage {
-				return logstorage_slslog.NewSlslog(logContrib)
+				return logstorage_alicloud.NewSlslog(logContrib)
 			}),
 		),
 	)

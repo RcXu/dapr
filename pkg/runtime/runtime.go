@@ -59,12 +59,14 @@ import (
 	"github.com/dapr/dapr/pkg/resiliency"
 	"github.com/dapr/kit/logger"
 
+	"github.com/dapr/components-contrib/logstorage"
 	"github.com/dapr/dapr/pkg/actors"
 	components_v1alpha1 "github.com/dapr/dapr/pkg/apis/components/v1alpha1"
 	"github.com/dapr/dapr/pkg/channel"
 	http_channel "github.com/dapr/dapr/pkg/channel/http"
 	"github.com/dapr/dapr/pkg/components"
 	bindings_loader "github.com/dapr/dapr/pkg/components/bindings"
+	logstorage_loader "github.com/dapr/dapr/pkg/components/logstorage"
 	http_middleware_loader "github.com/dapr/dapr/pkg/components/middleware/http"
 	nr_loader "github.com/dapr/dapr/pkg/components/nameresolution"
 	pubsub_loader "github.com/dapr/dapr/pkg/components/pubsub"
@@ -117,6 +119,7 @@ const (
 	defaultComponentInitTimeout                       = time.Second * 5
 	defaultGracefulShutdownDuration                   = time.Second * 5
 	kubernetesSecretStore                             = "kubernetes"
+	logstorageComponent             ComponentCategory = "logstorage"
 )
 
 var componentCategoriesNeedProcess = []ComponentCategory{
@@ -127,6 +130,7 @@ var componentCategoriesNeedProcess = []ComponentCategory{
 	middlewareComponent,
 	configurationComponent,
 	lockComponent,
+	logstorageComponent,
 }
 
 var log = logger.NewLogger("dapr.runtime")
@@ -201,7 +205,9 @@ type DaprRuntime struct {
 
 	proxy messaging.Proxy
 
-	resiliency resiliency.Provider
+	resiliency         resiliency.Provider
+	logstorageRegistry logstorage_loader.Registry
+	logstorages        map[string]logstorage.Logstorage
 }
 
 type ComponentsCallback func(components ComponentRegistry) error
@@ -270,7 +276,9 @@ func NewDaprRuntime(runtimeConfig *Config, globalConfig *config.Configuration, a
 		pendingComponentDependents: map[string][]components_v1alpha1.Component{},
 		shutdownC:                  make(chan error, 1),
 
-		resiliency: resiliencyProvider,
+		resiliency:         resiliencyProvider,
+		logstorageRegistry: logstorage_loader.NewRegistry(),
+		logstorages:        map[string]logstorage.Logstorage{},
 	}
 }
 
@@ -382,6 +390,7 @@ func (a *DaprRuntime) initRuntime(opts *runtimeOpts) error {
 	a.bindingsRegistry.RegisterOutputBindings(opts.outputBindings...)
 	a.httpMiddlewareRegistry.Register(opts.httpMiddleware...)
 	a.lockStoreRegistry.Register(opts.locks...)
+	a.logstorageRegistry.Register(opts.logstorages...)
 
 	go a.processComponents()
 
@@ -1109,6 +1118,7 @@ func (a *DaprRuntime) startHTTPServer(port int, publicPort *int, profilePort int
 		a.sendToOutputBinding,
 		a.globalConfig.Spec.TracingSpec,
 		a.ShutdownWithWait,
+		a.logstorages,
 	)
 	serverConf := http.NewServerConfig(
 		a.runtimeConfig.ID,
@@ -2059,6 +2069,8 @@ func (a *DaprRuntime) doProcessOneComponent(category ComponentCategory, comp com
 		return a.initConfiguration(comp)
 	case lockComponent:
 		return a.initLock(comp)
+	case logstorageComponent:
+		return a.initLogstorage(comp)
 	}
 	return nil
 }
@@ -2484,4 +2496,10 @@ func (a *DaprRuntime) startReadingFromBindings() error {
 		}(name, binding)
 	}
 	return nil
+}
+
+func (a *DaprRuntime) initLogstorage(s components_v1alpha1.Component) error {
+	logstorage, err := a.logstorageRegistry.Create(s.Spec.Type, s.Spec.Version)
+	a.logstorages[s.ObjectMeta.Name] = logstorage
+	return err
 }
