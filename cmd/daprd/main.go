@@ -24,6 +24,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"go.uber.org/automaxprocs/maxprocs"
 
+	"github.com/dapr/components-contrib/logstorage"
 	"github.com/dapr/components-contrib/state/zookeeper"
 
 	"github.com/dapr/kit/logger"
@@ -171,6 +172,10 @@ import (
 	// Lock.
 	"github.com/dapr/components-contrib/lock"
 	lock_redis "github.com/dapr/components-contrib/lock/redis"
+
+	//Logstorage
+	logstorage_slslog "github.com/dapr/components-contrib/logstorage/slslog"
+	logstorage_loader "github.com/dapr/dapr/pkg/components/logstorage"
 )
 
 var (
@@ -556,6 +561,11 @@ func main() {
 			}),
 			http_middleware_loader.New("wasm.basic", func(metadata middleware.Metadata) (http_middleware.Middleware, error) {
 				return wasm_basic.NewMiddleware(log).GetHandler(metadata)
+			}),
+		),
+		runtime.WithLogstorages(
+			logstorage_loader.New("slslog", func() logstorage.Logstorage {
+				return logstorage_slslog.NewSlslog(logContrib)
 			}),
 		),
 	)

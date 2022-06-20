@@ -4,6 +4,7 @@ import (
 	"github.com/dapr/dapr/pkg/components/bindings"
 	"github.com/dapr/dapr/pkg/components/configuration"
 	"github.com/dapr/dapr/pkg/components/lock"
+	"github.com/dapr/dapr/pkg/components/logstorage"
 	"github.com/dapr/dapr/pkg/components/middleware/http"
 	"github.com/dapr/dapr/pkg/components/nameresolution"
 	"github.com/dapr/dapr/pkg/components/pubsub"
@@ -23,6 +24,7 @@ type (
 		inputBindings   []bindings.InputBinding
 		outputBindings  []bindings.OutputBinding
 		httpMiddleware  []http.Middleware
+		logstorages     []logstorage.Logstorage
 
 		componentsCallback ComponentsCallback
 	}
@@ -97,5 +99,11 @@ func WithHTTPMiddleware(httpMiddleware ...http.Middleware) Option {
 func WithComponentsCallback(componentsCallback ComponentsCallback) Option {
 	return func(o *runtimeOpts) {
 		o.componentsCallback = componentsCallback
+	}
+}
+
+func WithLogstorages(logstorages ...logstorage.Logstorage) Option {
+	return func(o *runtimeOpts) {
+		o.logstorages = append(o.logstorages, logstorages...)
 	}
 }
