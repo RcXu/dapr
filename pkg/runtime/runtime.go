@@ -2498,8 +2498,13 @@ func (a *DaprRuntime) startReadingFromBindings() error {
 	return nil
 }
 
-func (a *DaprRuntime) initLogstorage(s components_v1alpha1.Component) error {
-	logstorage, err := a.logstorageRegistry.Create(s.Spec.Type, s.Spec.Version)
-	a.logstorages[s.ObjectMeta.Name] = logstorage
+func (a *DaprRuntime) initLogstorage(c components_v1alpha1.Component) error {
+	logstorageIns, err := a.logstorageRegistry.Create(c.Spec.Type, c.Spec.Version)
+	a.logstorages[c.ObjectMeta.Name] = logstorageIns
+	properties := a.convertMetadataItemsToProperties(c.Spec.Metadata)
+	//consumerID := strings.TrimSpace(properties["consumerID"])
+	err = logstorageIns.Init(logstorage.Metadata{
+		Properties: properties,
+	})
 	return err
 }

@@ -2323,18 +2323,18 @@ func (a *api) onLogMessage(reqCtx *fasthttp.RequestCtx) {
 		log.Debug(err)
 		return
 	}
-	var logstorageMessage logstorage.LogstorageRequest
-	err = json.Unmarshal(reqCtx.PostBody(), &logstorageMessage)
+	var logRequest logstorage.LogstorageRequest
+	err = json.Unmarshal(reqCtx.PostBody(), &logRequest)
 	if err != nil {
 		msg := NewErrorResponse("ERR_MALFORMED_REQUEST", err.Error())
 		respond(reqCtx, withError(fasthttp.StatusBadRequest, msg))
 		log.Debug(msg)
 		return
 	}
-	log.Debug(logstorageMessage)
+	log.Debug(logRequest)
 
-	requestId := string(reqCtx.Request.Header.Peek("request_id"))
+	//requestId := string(reqCtx.Request.Header.Peek("request_id"))
 
-	logstorageInstance.Log(logstorageMessage, requestId)
+	logstorageInstance.Log(logRequest)
 	respond(reqCtx, withEmpty())
 }
