@@ -2280,7 +2280,7 @@ func (a *api) constructLogstorageEndpoints() []Endpoint {
 	return []Endpoint{
 		{
 			Methods: []string{fasthttp.MethodGet, fasthttp.MethodPost},
-			Route:   "logstorage/{logstorageName}/{logstorageLevel}",
+			Route:   "logstorage/{logstorageName}/log",
 			Version: apiVersionV1,
 			Handler: a.onLogMessage,
 		},
@@ -2310,10 +2310,6 @@ func (a *api) getLogstorageWithRequestValidation(reqCtx *fasthttp.RequestCtx) (l
 
 func (a *api) getLogstorageName(reqCtx *fasthttp.RequestCtx) string {
 	return reqCtx.UserValue(logstorageParam).(string)
-}
-
-func (a *api) getLogstorageLevel(reqCtx *fasthttp.RequestCtx) string {
-	return reqCtx.UserValue(logstorageLevelParam).(string)
 }
 
 func (a *api) onLogMessage(reqCtx *fasthttp.RequestCtx) {
