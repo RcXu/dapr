@@ -2500,8 +2500,12 @@ func (a *DaprRuntime) startReadingFromBindings() error {
 
 func (a *DaprRuntime) initLogstorage(c components_v1alpha1.Component) error {
 	logstorageIns, err := a.logstorageRegistry.Create(c.Spec.Type, c.Spec.Version)
+	if err != nil {
+		log.Errorf("error create component %s: %s", c.ObjectMeta.Name, err)
+	}
 	a.logstorages[c.ObjectMeta.Name] = logstorageIns
 	properties := a.convertMetadataItemsToProperties(c.Spec.Metadata)
+	log.Debug("properties is ", properties)
 	//consumerID := strings.TrimSpace(properties["consumerID"])
 	err = logstorageIns.Init(logstorage.Metadata{
 		Properties: properties,

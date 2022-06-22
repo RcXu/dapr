@@ -123,6 +123,7 @@ require (
 	github.com/alibabacloud-go/openapi-util v0.0.10 // indirect
 	github.com/alibabacloud-go/tea v1.1.17 // indirect
 	github.com/alibabacloud-go/tea-utils v1.4.3 // indirect
+	github.com/aliyun/aliyun-log-go-sdk v0.1.36 // indirect
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.7+incompatible // indirect
 	github.com/aliyun/aliyun-tablestore-go-sdk v1.6.0 // indirect
 	github.com/aliyun/credentials-go v1.1.2 // indirect
@@ -176,6 +177,7 @@ require (
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/frankban/quicktest v1.14.3 // indirect
 	github.com/go-errors/errors v1.4.0 // indirect
+	github.com/go-kit/kit v0.10.0 // indirect
 	github.com/go-kit/log v0.2.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-ole/go-ole v1.2.5 // indirect
@@ -276,7 +278,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
-	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
+	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
 	github.com/pkg/browser v0.0.0-20210115035449-ce105d075bb4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
