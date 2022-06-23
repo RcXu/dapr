@@ -171,6 +171,12 @@ import (
 	// Lock.
 	"github.com/dapr/components-contrib/lock"
 	lock_redis "github.com/dapr/components-contrib/lock/redis"
+
+	//mytest demo
+	"github.com/dapr/components-contrib/mytest"
+	mytest_demof "github.com/dapr/components-contrib/mytest/demof"
+	mytest_demos "github.com/dapr/components-contrib/mytest/demos"
+	mytest_loader "github.com/dapr/dapr/pkg/components/mytest"
 )
 
 var (
@@ -556,6 +562,14 @@ func main() {
 			}),
 			http_middleware_loader.New("wasm.basic", func(metadata middleware.Metadata) (http_middleware.Middleware, error) {
 				return wasm_basic.NewMiddleware(log).GetHandler(metadata)
+			}),
+		),
+		runtime.WithMytests(
+			mytest_loader.New("demof", func() mytest.Mytest {
+				return mytest_demof.NewDemof(logContrib)
+			}),
+			mytest_loader.New("demos", func() mytest.Mytest {
+				return mytest_demos.NewDemos(logContrib)
 			}),
 		),
 	)

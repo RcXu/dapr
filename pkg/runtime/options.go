@@ -5,6 +5,7 @@ import (
 	"github.com/dapr/dapr/pkg/components/configuration"
 	"github.com/dapr/dapr/pkg/components/lock"
 	"github.com/dapr/dapr/pkg/components/middleware/http"
+	"github.com/dapr/dapr/pkg/components/mytest"
 	"github.com/dapr/dapr/pkg/components/nameresolution"
 	"github.com/dapr/dapr/pkg/components/pubsub"
 	"github.com/dapr/dapr/pkg/components/secretstores"
@@ -25,6 +26,7 @@ type (
 		httpMiddleware  []http.Middleware
 
 		componentsCallback ComponentsCallback
+		mytests            []mytest.Mytest
 	}
 
 	// Option is a function that customizes the runtime.
@@ -97,5 +99,11 @@ func WithHTTPMiddleware(httpMiddleware ...http.Middleware) Option {
 func WithComponentsCallback(componentsCallback ComponentsCallback) Option {
 	return func(o *runtimeOpts) {
 		o.componentsCallback = componentsCallback
+	}
+}
+
+func WithMytests(mytests ...mytest.Mytest) Option {
+	return func(o *runtimeOpts) {
+		o.mytests = append(o.mytests, mytests...)
 	}
 }

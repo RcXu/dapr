@@ -87,6 +87,9 @@ import (
 	"github.com/dapr/dapr/pkg/runtime/security"
 	"github.com/dapr/dapr/pkg/scopes"
 	"github.com/dapr/dapr/utils"
+
+	"github.com/dapr/components-contrib/mytest"
+	mytest_loader "github.com/dapr/dapr/pkg/components/mytest"
 )
 
 const (
@@ -117,6 +120,7 @@ const (
 	defaultComponentInitTimeout                       = time.Second * 5
 	defaultGracefulShutdownDuration                   = time.Second * 5
 	kubernetesSecretStore                             = "kubernetes"
+	mytestComponent                 ComponentCategory = "mytest"
 )
 
 var componentCategoriesNeedProcess = []ComponentCategory{
@@ -127,6 +131,7 @@ var componentCategoriesNeedProcess = []ComponentCategory{
 	middlewareComponent,
 	configurationComponent,
 	lockComponent,
+	mytestComponent,
 }
 
 var log = logger.NewLogger("dapr.runtime")
@@ -201,7 +206,9 @@ type DaprRuntime struct {
 
 	proxy messaging.Proxy
 
-	resiliency resiliency.Provider
+	resiliency     resiliency.Provider
+	mytestRegistry mytest_loader.Registry
+	mytests        map[string]mytest.Mytest
 }
 
 type ComponentsCallback func(components ComponentRegistry) error
@@ -270,7 +277,9 @@ func NewDaprRuntime(runtimeConfig *Config, globalConfig *config.Configuration, a
 		pendingComponentDependents: map[string][]components_v1alpha1.Component{},
 		shutdownC:                  make(chan error, 1),
 
-		resiliency: resiliencyProvider,
+		resiliency:     resiliencyProvider,
+		mytestRegistry: mytest_loader.NewRegistry(),
+		mytests:        map[string]mytest.Mytest{},
 	}
 }
 
@@ -382,6 +391,7 @@ func (a *DaprRuntime) initRuntime(opts *runtimeOpts) error {
 	a.bindingsRegistry.RegisterOutputBindings(opts.outputBindings...)
 	a.httpMiddlewareRegistry.Register(opts.httpMiddleware...)
 	a.lockStoreRegistry.Register(opts.locks...)
+	a.mytestRegistry.Register(opts.mytests...)
 
 	go a.processComponents()
 
@@ -1112,6 +1122,7 @@ func (a *DaprRuntime) startHTTPServer(port int, publicPort *int, profilePort int
 		a.globalConfig.Spec.TracingSpec,
 		a.ShutdownWithWait,
 		a.getComponentsCapabilitesMap,
+		a.mytests,
 	)
 	serverConf := http.NewServerConfig(
 		a.runtimeConfig.ID,
@@ -2085,6 +2096,8 @@ func (a *DaprRuntime) doProcessOneComponent(category ComponentCategory, comp com
 		return a.initConfiguration(comp)
 	case lockComponent:
 		return a.initLock(comp)
+	case mytestComponent:
+		return a.initMytest(comp)
 	}
 	return nil
 }
@@ -2546,4 +2559,18 @@ func (a *DaprRuntime) startReadingFromBindings() error {
 		}(name, binding)
 	}
 	return nil
+}
+
+func (a *DaprRuntime) initMytest(c components_v1alpha1.Component) error {
+	mytestIns, err := a.mytestRegistry.Create(c.Spec.Type, c.Spec.Version)
+	if err != nil {
+		log.Errorf("error create component %s: %s", c.ObjectMeta.Name, err)
+	}
+	a.mytests[c.ObjectMeta.Name] = mytestIns
+	properties := a.convertMetadataItemsToProperties(c.Spec.Metadata)
+	log.Debug("properties is ", properties)
+	mytestIns.Init(mytest.Metadata{
+		Properties: properties,
+	})
+	return err
 }

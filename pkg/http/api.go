@@ -38,6 +38,7 @@ import (
 	lock_loader "github.com/dapr/dapr/pkg/components/lock"
 
 	contrib_metadata "github.com/dapr/components-contrib/metadata"
+	"github.com/dapr/components-contrib/mytest"
 	"github.com/dapr/components-contrib/pubsub"
 	"github.com/dapr/components-contrib/secretstores"
 	"github.com/dapr/components-contrib/state"
@@ -94,6 +95,7 @@ type api struct {
 	tracingSpec                config.TracingSpec
 	shutdown                   func()
 	getComponentsCapabilitesFn func() map[string][]string
+	mytests                    map[string]mytest.Mytest
 }
 
 type registeredComponent struct {
@@ -131,6 +133,7 @@ const (
 	traceparentHeader        = "traceparent"
 	tracestateHeader         = "tracestate"
 	daprAppID                = "dapr-app-id"
+	mytestParam              = "mytestName"
 )
 
 // NewAPI returns a new API.
@@ -151,6 +154,7 @@ func NewAPI(
 	tracingSpec config.TracingSpec,
 	shutdown func(),
 	getComponentsCapabilitiesFn func() map[string][]string,
+	mytests map[string]mytest.Mytest,
 ) API {
 	transactionalStateStores := map[string]state.TransactionalStore{}
 	for key, store := range stateStores {
@@ -177,6 +181,7 @@ func NewAPI(
 		tracingSpec:                tracingSpec,
 		shutdown:                   shutdown,
 		getComponentsCapabilitesFn: getComponentsCapabilitiesFn,
+		mytests:                    mytests,
 	}
 
 	metadataEndpoints := api.constructMetadataEndpoints()
@@ -196,6 +201,7 @@ func NewAPI(
 
 	api.publicEndpoints = append(api.publicEndpoints, metadataEndpoints...)
 	api.publicEndpoints = append(api.publicEndpoints, healthEndpoints...)
+	api.endpoints = append(api.endpoints, api.constructMytestEndpoints()...)
 
 	return api
 }
@@ -2274,4 +2280,57 @@ func (a *api) SetDirectMessaging(directMessaging messaging.DirectMessaging) {
 
 func (a *api) SetActorRuntime(actor actors.Actors) {
 	a.actor = actor
+}
+
+/**
+ * regist Mytest component api
+ */
+func (a *api) constructMytestEndpoints() []Endpoint {
+	return []Endpoint{
+		{
+			Methods: []string{fasthttp.MethodGet, fasthttp.MethodPost},
+			Route:   "mytest/{mytestName}/info",
+			Version: apiVersionV1,
+			Handler: a.onMytestInfo,
+		},
+	}
+}
+
+/**
+ * switch Mytest component instance
+ */
+func (a *api) getMytestWithRequestValidation(reqCtx *fasthttp.RequestCtx) (mytest.Mytest, string, error) {
+	if a.mytests == nil || len(a.mytests) == 0 {
+		msg := NewErrorResponse("ERR_MYTEST_NOT_CONFIGURED", messages.ErrMytestNotFound)
+		respond(reqCtx, withError(fasthttp.StatusInternalServerError, msg))
+		log.Debug(msg)
+		return nil, "", errors.New(msg.Message)
+	}
+
+	mytestName := a.getMytestName(reqCtx)
+	if a.mytests[mytestName] == nil {
+		msg := NewErrorResponse("ERR_MYTEST_NOT_CONFIGURED", fmt.Sprintf(messages.ErrMytestNotFound, mytestName))
+		respond(reqCtx, withError(fasthttp.StatusBadRequest, msg))
+		log.Debug(msg)
+		return nil, "", errors.New(msg.Message)
+	}
+	return a.mytests[mytestName], mytestName, nil
+}
+
+func (a *api) getMytestName(reqCtx *fasthttp.RequestCtx) string {
+	return reqCtx.UserValue(mytestParam).(string)
+}
+
+func (a *api) onMytestInfo(reqCtx *fasthttp.RequestCtx) {
+	log.Debug("calling mytest components")
+	mytestInstance, _, err := a.getMytestWithRequestValidation(reqCtx)
+	if err != nil {
+		log.Debug(err)
+		return
+	}
+
+	//requestId := string(reqCtx.Request.Header.Peek("request_id"))
+
+	mytestInstance.Info()
+	respond(reqCtx, withEmpty())
 }

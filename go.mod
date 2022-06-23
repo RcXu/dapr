@@ -382,3 +382,5 @@ replace github.com/eclipse/paho.mqtt.golang => github.com/shivamkm07/paho.mqtt.g
 //
 // Then, run `make modtidy` in this repository.
 // This ensures that go.mod and go.sum are up-to-date.
+
+replace github.com/dapr/components-contrib => ../components-contrib
