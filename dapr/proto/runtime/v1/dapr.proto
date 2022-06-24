@@ -109,6 +109,9 @@ service Dapr {
 
   // Shutdown the sidecar
   rpc Shutdown (google.protobuf.Empty) returns (google.protobuf.Empty) {}
+
+  // Log a Message
+  rpc onLogMessage (LogstorageMessageRequest) returns (google.protobuf.Empty) {}
 }
 
 // InvokeServiceRequest represents the request message for Service invocation.
@@ -595,3 +598,21 @@ message UnlockResponse {
 
   Status status = 1;
 }
+
+message LogstorageMessageContent{
+  string ip = 1;
+  int64 timestamp = 2;
+  string file = 3;
+  string function =4 ;
+  string level = 5;
+  string content = 6;
+}
+
+message LogstorageMessageRequest {
+  string project = 1;
+  string logstore = 2;
+  string topic = 3;
+  string source = 4;
+  LogstorageMessageContent log = 5;
+}
+
