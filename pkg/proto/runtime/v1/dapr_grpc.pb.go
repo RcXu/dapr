@@ -76,6 +76,8 @@ type DaprClient interface {
 	SetMetadata(ctx context.Context, in *SetMetadataRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Shutdown the sidecar
 	Shutdown(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Log a Message
+	OnLogMessage(ctx context.Context, in *LogstorageMessageRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type daprClient struct {
@@ -361,8 +363,17 @@ func (c *daprClient) Shutdown(ctx context.Context, in *emptypb.Empty, opts ...gr
 	return out, nil
 }
 
+func (c *daprClient) OnLogMessage(ctx context.Context, in *LogstorageMessageRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/dapr.proto.runtime.v1.Dapr/onLogMessage", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DaprServer is the server API for Dapr service.
-// All implementations should embed UnimplementedDaprServer
+// All implementations must embed UnimplementedDaprServer
 // for forward compatibility
 type DaprServer interface {
 	// Invokes a method on a remote Dapr app.
@@ -421,9 +432,12 @@ type DaprServer interface {
 	SetMetadata(context.Context, *SetMetadataRequest) (*emptypb.Empty, error)
 	// Shutdown the sidecar
 	Shutdown(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	// Log a Message
+	OnLogMessage(context.Context, *LogstorageMessageRequest) (*emptypb.Empty, error)
+	mustEmbedUnimplementedDaprServer()
 }
 
-// UnimplementedDaprServer should be embedded to have forward compatible implementations.
+// UnimplementedDaprServer must be embedded to have forward compatible implementations.
 type UnimplementedDaprServer struct {
 }
 
@@ -511,6 +525,10 @@ func (UnimplementedDaprServer) SetMetadata(context.Context, *SetMetadataRequest)
 func (UnimplementedDaprServer) Shutdown(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Shutdown not implemented")
 }
+func (UnimplementedDaprServer) OnLogMessage(context.Context, *LogstorageMessageRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OnLogMessage not implemented")
+}
+func (UnimplementedDaprServer) mustEmbedUnimplementedDaprServer() {}
 
 // UnsafeDaprServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to DaprServer will
@@ -1030,6 +1048,24 @@ func _Dapr_Shutdown_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Dapr_OnLogMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogstorageMessageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DaprServer).OnLogMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dapr.proto.runtime.v1.Dapr/onLogMessage",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DaprServer).OnLogMessage(ctx, req.(*LogstorageMessageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Dapr_ServiceDesc is the grpc.ServiceDesc for Dapr service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1144,6 +1180,10 @@ var Dapr_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Shutdown",
 			Handler:    _Dapr_Shutdown_Handler,
+		},
+		{
+			MethodName: "onLogMessage",
+			Handler:    _Dapr_OnLogMessage_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
