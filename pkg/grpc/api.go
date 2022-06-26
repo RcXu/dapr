@@ -37,6 +37,7 @@ import (
 
 	"github.com/dapr/components-contrib/bindings"
 	"github.com/dapr/components-contrib/contenttype"
+	"github.com/dapr/components-contrib/logstorage"
 	contrib_metadata "github.com/dapr/components-contrib/metadata"
 	"github.com/dapr/components-contrib/pubsub"
 	"github.com/dapr/components-contrib/secretstores"
@@ -107,6 +108,8 @@ type API interface {
 	SetMetadata(ctx context.Context, in *runtimev1pb.SetMetadataRequest) (*emptypb.Empty, error)
 	// Shutdown the sidecar
 	Shutdown(ctx context.Context, in *emptypb.Empty) (*emptypb.Empty, error)
+	//Log a Message
+	OnLogMessage(ctx context.Context, in *runtimev1pb.LogstorageMessageRequest) (*emptypb.Empty, error)
 }
 
 type api struct {
@@ -131,6 +134,7 @@ type api struct {
 	extendedMetadata           sync.Map
 	components                 []components_v1alpha.Component
 	shutdown                   func()
+	logstorages                map[string]logstorage.Logstorage
 }
 
 func (a *api) TryLockAlpha1(ctx context.Context, req *runtimev1pb.TryLockRequest) (*runtimev1pb.TryLockResponse, error) {
@@ -280,6 +284,7 @@ func NewAPI(
 	appProtocol string,
 	getComponentsFn func() []components_v1alpha.Component,
 	shutdown func(),
+	logstorages map[string]logstorage.Logstorage,
 ) API {
 	transactionalStateStores := map[string]state.TransactionalStore{}
 	for key, store := range stateStores {
@@ -307,6 +312,7 @@ func NewAPI(
 		accessControlList:        accessControlList,
 		appProtocol:              appProtocol,
 		shutdown:                 shutdown,
+		logstorages:              logstorages,
 	}
 }
 
@@ -1709,4 +1715,9 @@ func (a *api) UnsubscribeConfigurationAlpha1(ctx context.Context, request *runti
 	return &runtimev1pb.UnsubscribeConfigurationResponse{
 		Ok: true,
 	}, nil
+}
+
+func (a *api) OnLogMessage(ctx context.Context, in *runtimev1pb.LogstorageMessageRequest) (*emptypb.Empty, error) {
+	fmt.Printf("log a debug message")
+	return &emptypb.Empty{}, nil
 }

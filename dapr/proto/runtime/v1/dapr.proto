@@ -111,7 +111,7 @@ service Dapr {
   rpc Shutdown (google.protobuf.Empty) returns (google.protobuf.Empty) {}
 
   // Log a Message
-  rpc onLogMessage (LogstorageMessageRequest) returns (google.protobuf.Empty) {}
+  rpc OnLogMessage (LogstorageMessageRequest) returns (google.protobuf.Empty) {}
 }
 
 // InvokeServiceRequest represents the request message for Service invocation.
