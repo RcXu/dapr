@@ -1729,12 +1729,24 @@ func (a *api) getLogstorage(name string) (logstorage.Logstorage, error) {
 }
 
 func (a *api) OnLogMessage(ctx context.Context, in *runtimev1pb.LogstorageMessageRequest) (*emptypb.Empty, error) {
-	_, err := a.getLogstorage(in.LogstorageName)
 
+	logstorageInstance, err := a.getLogstorage(in.LogstorageName)
 	if err != nil {
 		apiServerLogger.Debug(err)
 		return &emptypb.Empty{}, err
 	}
-	fmt.Printf("log a debug message")
+
+	var logRequest logstorage.LogstorageRequest
+	logRequest.Project = in.Project
+	logRequest.Source = in.Source
+	logRequest.Topic = in.Topic
+	logRequest.Logstore = in.Logstore
+	logRequest.Log.Ip = in.Log.Ip
+	logRequest.Log.File = in.Log.File
+	logRequest.Log.Function = in.Log.Function
+	logRequest.Log.Timestamp = in.Log.Timestamp
+	logRequest.Log.Level = in.Log.Level
+	logRequest.Log.Content = in.Log.Content
+	logstorageInstance.Log(logRequest)
 	return &emptypb.Empty{}, nil
 }
