@@ -609,10 +609,12 @@ message LogstorageMessageContent{
 }
 
 message LogstorageMessageRequest {
-  string project = 1;
-  string logstore = 2;
-  string topic = 3;
-  string source = 4;
-  LogstorageMessageContent log = 5;
+  string logstorage_name = 1;
+  string project = 2;
+  string logstore = 3;
+  string topic = 4;
+  string source = 5;
+  map<string, string> metadata = 6;
+  LogstorageMessageContent log = 7;
 }
 

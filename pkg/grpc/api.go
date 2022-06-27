@@ -1717,7 +1717,24 @@ func (a *api) UnsubscribeConfigurationAlpha1(ctx context.Context, request *runti
 	}, nil
 }
 
+func (a *api) getLogstorage(name string) (logstorage.Logstorage, error) {
+	if a.logstorages == nil || len(a.logstorages) == 0 {
+		return nil, status.Error(codes.FailedPrecondition, messages.ErrLogstorageNotConfigured)
+	}
+
+	if a.logstorages[name] == nil {
+		return nil, status.Errorf(codes.InvalidArgument, messages.ErrLogstorageNotFound, name)
+	}
+	return a.logstorages[name], nil
+}
+
 func (a *api) OnLogMessage(ctx context.Context, in *runtimev1pb.LogstorageMessageRequest) (*emptypb.Empty, error) {
+	_, err := a.getLogstorage(in.LogstorageName)
+
+	if err != nil {
+		apiServerLogger.Debug(err)
+		return &emptypb.Empty{}, err
+	}
 	fmt.Printf("log a debug message")
 	return &emptypb.Empty{}, nil
 }
