@@ -1736,17 +1736,31 @@ func (a *api) OnLogMessage(ctx context.Context, in *runtimev1pb.LogstorageMessag
 		return &emptypb.Empty{}, err
 	}
 
+	r, err := json.Marshal(in)
+	if err != nil {
+		return nil, err
+	}
+
 	var logRequest logstorage.LogstorageRequest
-	logRequest.Project = in.Project
-	logRequest.Source = in.Source
-	logRequest.Topic = in.Topic
-	logRequest.Logstore = in.Logstore
-	logRequest.Log.Ip = in.Log.Ip
-	logRequest.Log.File = in.Log.File
-	logRequest.Log.Function = in.Log.Function
-	logRequest.Log.Timestamp = in.Log.Timestamp
-	logRequest.Log.Level = in.Log.Level
-	logRequest.Log.Content = in.Log.Content
+	err = json.Unmarshal(r, &logRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	/*
+		var logRequest logstorage.LogstorageRequest
+		logRequest.Project = in.Project
+		logRequest.Source = in.Source
+		logRequest.Topic = in.Topic
+		logRequest.Logstore = in.Logstore
+		logRequest.Log.Ip = in.Log.Ip
+		logRequest.Log.File = in.Log.File
+		logRequest.Log.Function = in.Log.Function
+		logRequest.Log.Timestamp = in.Log.Timestamp
+		logRequest.Log.Level = in.Log.Level
+		logRequest.Log.Content = in.Log.Content
+		logstorageInstance.Log(logRequest)
+	*/
 	logstorageInstance.Log(logRequest)
 	return &emptypb.Empty{}, nil
 }
