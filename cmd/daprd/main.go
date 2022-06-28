@@ -564,7 +564,7 @@ func main() {
 			}),
 		),
 		runtime.WithLogstorages(
-			logstorage_loader.New("alicloud", func() logstorage.Logstorage {
+			logstorage_loader.New("alicloud.slsLogstorage", func() logstorage.Logstorage {
 				return logstorage_alicloud.NewSlsLogstorage(logContrib)
 			}),
 		),
