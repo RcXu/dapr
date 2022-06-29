@@ -2312,13 +2312,17 @@ func (a *api) getLogstorageName(reqCtx *fasthttp.RequestCtx) string {
 	return reqCtx.UserValue(logstorageParam).(string)
 }
 
+/**
+ * Log the message to store
+ */
 func (a *api) onLogMessage(reqCtx *fasthttp.RequestCtx) {
-	log.Debug("calling logstorage components")
-	logstorageInstance, _, err := a.getLogstorageWithRequestValidation(reqCtx)
+	logstorageInstance, logstorageName, err := a.getLogstorageWithRequestValidation(reqCtx)
 	if err != nil {
-		log.Debug(err)
+		respond(reqCtx, withError(fasthttp.StatusBadRequest, msg))
+		log.Debug(msg)
 		return
 	}
+	log.Debug("calling logstorage component %s", logstorageName)
 	var logRequest logstorage.LogstorageRequest
 	err = json.Unmarshal(reqCtx.PostBody(), &logRequest)
 	if err != nil {
@@ -2328,9 +2332,11 @@ func (a *api) onLogMessage(reqCtx *fasthttp.RequestCtx) {
 		return
 	}
 	log.Debug(logRequest)
-
-	//requestId := string(reqCtx.Request.Header.Peek("request_id"))
-
-	logstorageInstance.Log(logRequest)
-	respond(reqCtx, withEmpty())
+	resp, err := logstorageInstance.Log(logRequest)
+	if err != nil {
+		respond(reqCtx, withError(fasthttp.StatusBadRequest, err))
+		log.Debug(msg)
+		return
+	}
+	respond(reqCtx, withJSON(fasthttp.StatusOK, resp))
 }
