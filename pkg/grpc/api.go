@@ -109,7 +109,7 @@ type API interface {
 	// Shutdown the sidecar
 	Shutdown(ctx context.Context, in *emptypb.Empty) (*emptypb.Empty, error)
 	//Log a Message
-	OnLogMessage(ctx context.Context, in *runtimev1pb.LogstorageMessageRequest) (*emptypb.Empty, error)
+	OnLogMessage(ctx context.Context, in *runtimev1pb.LogstorageMessageRequest) (*runtimev1pb.LogstorageResponse, error)
 }
 
 type api struct {
@@ -1717,6 +1717,7 @@ func (a *api) UnsubscribeConfigurationAlpha1(ctx context.Context, request *runti
 	}, nil
 }
 
+// switch logstorage component
 func (a *api) getLogstorage(name string) (logstorage.Logstorage, error) {
 	if a.logstorages == nil || len(a.logstorages) == 0 {
 		return nil, status.Error(codes.FailedPrecondition, messages.ErrLogstorageNotConfigured)
@@ -1728,24 +1729,31 @@ func (a *api) getLogstorage(name string) (logstorage.Logstorage, error) {
 	return a.logstorages[name], nil
 }
 
-func (a *api) OnLogMessage(ctx context.Context, in *runtimev1pb.LogstorageMessageRequest) (*emptypb.Empty, error) {
+//log a message to the storage
+func (a *api) OnLogMessage(ctx context.Context, in *runtimev1pb.LogstorageMessageRequest) (*runtimev1pb.LogstorageResponse, error) {
 
 	logstorageInstance, err := a.getLogstorage(in.LogstorageName)
 	if err != nil {
-		apiServerLogger.Debug(err)
-		return &emptypb.Empty{}, err
+		apiServerLogger.Info(err)
+		return &runtimev1pb.LogstorageResponse{}, err
 	}
 
 	r, err := json.Marshal(in)
 	if err != nil {
-		return nil, err
+		apiServerLogger.Info(err)
+		return &runtimev1pb.LogstorageResponse{}, err
 	}
 
 	var logRequest logstorage.LogstorageRequest
 	err = json.Unmarshal(r, &logRequest)
 	if err != nil {
-		return nil, err
+		apiServerLogger.Info(err)
+		return &runtimev1pb.LogstorageResponse{}, err
 	}
-	logstorageInstance.Log(logRequest)
-	return &emptypb.Empty{}, nil
+	resp, err := logstorageInstance.Log(logRequest)
+	if err != nil {
+		apiServerLogger.Info(err)
+		return &runtimev1pb.LogstorageResponse{}, err
+	}
+	return &runtimev1pb.LogstorageResponse{Success: resp.Success}, nil
 }

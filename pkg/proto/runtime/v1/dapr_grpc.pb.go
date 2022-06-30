@@ -81,7 +81,7 @@ type DaprClient interface {
 	// Shutdown the sidecar
 	Shutdown(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Log a Message
-	OnLogMessage(ctx context.Context, in *LogstorageMessageRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	OnLogMessage(ctx context.Context, in *LogstorageMessageRequest, opts ...grpc.CallOption) (*LogstorageResponse, error)
 }
 
 type daprClient struct {
@@ -367,8 +367,8 @@ func (c *daprClient) Shutdown(ctx context.Context, in *emptypb.Empty, opts ...gr
 	return out, nil
 }
 
-func (c *daprClient) OnLogMessage(ctx context.Context, in *LogstorageMessageRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
+func (c *daprClient) OnLogMessage(ctx context.Context, in *LogstorageMessageRequest, opts ...grpc.CallOption) (*LogstorageResponse, error) {
+	out := new(LogstorageResponse)
 	err := c.cc.Invoke(ctx, "/dapr.proto.runtime.v1.Dapr/OnLogMessage", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -437,7 +437,7 @@ type DaprServer interface {
 	// Shutdown the sidecar
 	Shutdown(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	// Log a Message
-	OnLogMessage(context.Context, *LogstorageMessageRequest) (*emptypb.Empty, error)
+	OnLogMessage(context.Context, *LogstorageMessageRequest) (*LogstorageResponse, error)
 }
 
 // UnimplementedDaprServer must be embedded to have forward compatible implementations.
@@ -528,7 +528,7 @@ func (UnimplementedDaprServer) SetMetadata(context.Context, *SetMetadataRequest)
 func (UnimplementedDaprServer) Shutdown(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Shutdown not implemented")
 }
-func (UnimplementedDaprServer) OnLogMessage(context.Context, *LogstorageMessageRequest) (*emptypb.Empty, error) {
+func (UnimplementedDaprServer) OnLogMessage(context.Context, *LogstorageMessageRequest) (*LogstorageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method OnLogMessage not implemented")
 }
 
