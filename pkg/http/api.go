@@ -2318,8 +2318,9 @@ func (a *api) getLogstorageName(reqCtx *fasthttp.RequestCtx) string {
 func (a *api) onLogMessage(reqCtx *fasthttp.RequestCtx) {
 	logstorageInstance, logstorageName, err := a.getLogstorageWithRequestValidation(reqCtx)
 	if err != nil {
+		msg := NewErrorResponse("ERR_MALFORMED_REQUEST", err.Error())
 		respond(reqCtx, withError(fasthttp.StatusBadRequest, msg))
-		log.Debug(msg)
+		log.Debug(err)
 		return
 	}
 	log.Debug("calling logstorage component %s", logstorageName)
@@ -2334,9 +2335,11 @@ func (a *api) onLogMessage(reqCtx *fasthttp.RequestCtx) {
 	log.Debug(logRequest)
 	resp, err := logstorageInstance.Log(logRequest)
 	if err != nil {
-		respond(reqCtx, withError(fasthttp.StatusBadRequest, err))
+		msg := NewErrorResponse("ERR_MALFORMED_REQUEST", err.Error())
+		respond(reqCtx, withError(fasthttp.StatusBadRequest, msg))
 		log.Debug(msg)
 		return
 	}
-	respond(reqCtx, withJSON(fasthttp.StatusOK, resp))
+	bts, _ := json.Marshal(resp)
+	respond(reqCtx, withJSON(fasthttp.StatusOK, bts))
 }
