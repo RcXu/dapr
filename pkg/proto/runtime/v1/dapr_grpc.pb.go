@@ -377,7 +377,7 @@ func (c *daprClient) OnLogMessage(ctx context.Context, in *LogstorageMessageRequ
 }
 
 // DaprServer is the server API for Dapr service.
-// All implementations must embed UnimplementedDaprServer
+// All implementations should embed UnimplementedDaprServer
 // for forward compatibility
 type DaprServer interface {
 	// Invokes a method on a remote Dapr app.
@@ -440,7 +440,7 @@ type DaprServer interface {
 	OnLogMessage(context.Context, *LogstorageMessageRequest) (*LogstorageResponse, error)
 }
 
-// UnimplementedDaprServer must be embedded to have forward compatible implementations.
+// UnimplementedDaprServer should be embedded to have forward compatible implementations.
 type UnimplementedDaprServer struct {
 }
 
